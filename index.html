@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Ces espaces dehors, t'en penses quoi ?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d1a;
+  --surface: #16162a;
+  --card: #1e1e38;
+  --border: #2e2e50;
+  --orange: #FF6B35;
+  --orange2: #ffaa5e;
+  --white: #ffffff;
+  --gray: #7b7b9e;
+  --gray2: #4a4a6a;
+}
+
+html {
+  height: 100%;
+  background: var(--bg);
+}
+body {
+  height: 100%;
+  width: 100%;
+  position: fixed; /* bloque le scroll natif iOS (rubber-band) */
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── PROGRESS ────────────────────────────────── */
+#topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  padding: max(14px, env(safe-area-inset-top)) 20px 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(var(--bg), transparent);
+  pointer-events: none;
+}
+#topbar button { pointer-events: all; }
+
+#back-btn {
+  background: var(--card);
+  border: none;
+  color: var(--gray);
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+#back-btn.visible { opacity: 1; }
+
+#progress-track {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+#progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--orange), var(--orange2));
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  width: 0%;
+}
+#progress-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ─── VIEWPORT ────────────────────────────────── */
+#viewport {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0; /* inset non supporté iOS <15 */
+  overflow: hidden;
+}
+
+/* ─── SCREENS ─────────────────────────────────── */
+.screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 72px 24px 110px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: none;                /* toujours caché — JS pose display:flex */
+  flex-direction: column;
+}
+
+/* Animations d'entrée — @keyframes est plus fiable que les transitions JS sur iOS */
+@-webkit-keyframes enterFwd {
+  from { opacity: 0; -webkit-transform: translateX(48px); transform: translateX(48px); }
+  to   { opacity: 1; -webkit-transform: translateX(0);    transform: translateX(0); }
+}
+@keyframes enterFwd {
+  from { opacity: 0; transform: translateX(48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@-webkit-keyframes enterBack {
+  from { opacity: 0; -webkit-transform: translateX(-48px); transform: translateX(-48px); }
+  to   { opacity: 1; -webkit-transform: translateX(0);     transform: translateX(0); }
+}
+@keyframes enterBack {
+  from { opacity: 0; transform: translateX(-48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.screen.anim-fwd  {
+  -webkit-animation: enterFwd  0.3s cubic-bezier(.4,0,.2,1) both;
+          animation: enterFwd  0.3s cubic-bezier(.4,0,.2,1) both;
+}
+.screen.anim-back {
+  -webkit-animation: enterBack 0.3s cubic-bezier(.4,0,.2,1) both;
+          animation: enterBack 0.3s cubic-bezier(.4,0,.2,1) both;
+}
+
+/* ─── WELCOME ─────────────────────────────────── */
+#s-welcome {
+  justify-content: center;
+  gap: 0;
+}
+.welcome-top {
+  font-size: 60px;
+  margin-bottom: 24px;
+  animation: popIn .6s cubic-bezier(.34,1.56,.64,1) .1s both;
+}
+@keyframes popIn {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.welcome-title {
+  font-size: clamp(24px, 7vw, 30px);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 16px;
+}
+.welcome-title em { color: var(--orange); font-style: normal; }
+.welcome-desc {
+  font-size: 15px;
+  color: var(--gray);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+.welcome-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
+.pill {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--gray);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ─── Q SCREEN ────────────────────────────────── */
+.q-section {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 10px;
+}
+.q-title {
+  font-size: clamp(19px, 5.5vw, 23px);
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.q-note {
+  font-size: 13px;
+  color: var(--gray);
+  margin-bottom: 22px;
+}
+.q-count {
+  display: inline-block;
+  background: var(--card);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 12px;
+  color: var(--gray);
+  margin-bottom: 10px;
+}
+.q-count span { color: var(--orange); font-weight: 700; }
+
+/* ─── OPTIONS ─────────────────────────────────── */
+.options { display: flex; flex-direction: column; gap: 9px; }
+
+.opt {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 16px;           /* padding plus grand = cible plus facile sur mobile */
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--white);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color .15s, background .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;   /* supprime le délai de 300ms sur mobile */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.opt:active { transform: scale(.97); }
+.opt.selected {
+  border-color: var(--orange);
+  background: rgba(255,107,53,.13);
+}
+
+.opt-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--gray2);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  font-size: 11px;
+  font-weight: 800;
+}
+.opt.selected .opt-dot {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: white;
+}
+.opt.selected .opt-dot::after { content: '✓'; }
+
+/* CHIPS (âge, genre) */
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 50px;
+  padding: 12px 22px;           /* cible plus grande sur mobile */
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--white);
+  cursor: pointer;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip:active { transform: scale(.95); }
+.chip { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.chip.selected {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+/* TEXT INPUT */
+.txt-input {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 15px 18px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--white);
+  width: 100%;
+  outline: none;
+  transition: border-color .2s;
+  line-height: 1.5;
+}
+.txt-input:focus { border-color: var(--orange); }
+.txt-input::placeholder { color: var(--gray2); }
+textarea.txt-input { min-height: 130px; resize: none; }
+
+/* ─── PHOTOS ──────────────────────────────────── */
+.photos-intro {
+  font-size: 15px;
+  color: var(--gray);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+.photos-intro strong { color: var(--white); }
+
+.photo-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.photo-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color .2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.photo-card:hover { border-color: var(--orange); }
+
+.photo-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+  background: #0d0d1a;
+  display: block;
+}
+
+.photo-ph {
+  width: 100%;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #1a1a38, #12122a);
+  transition: background .2s;
+}
+.photo-card:hover .photo-ph { background: linear-gradient(135deg, #22224a, #181830); }
+.photo-ph .ph-icon { font-size: 26px; }
+.photo-ph .ph-title { font-size: 11px; font-weight: 700; color: var(--white); text-align: center; }
+.photo-ph .ph-hint  { font-size: 10px; color: var(--gray); display: flex; align-items: center; gap: 4px; text-align: center; }
+.photo-ph .ph-hint::before { content: ''; display: inline-block; width: 18px; height: 18px; background: var(--orange); border-radius: 50%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 16l-4-4h2.5V8h3v4H16l-4 4zm8 4H4a1 1 0 01-1-1V5a1 1 0 011-1h4l2-2h4l2 2h4a1 1 0 011 1v14a1 1 0 01-1 1z'/%3E%3C/svg%3E"); background-size: 12px; background-repeat: no-repeat; background-position: center; }
+
+.photo-foot {
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.photo-num {
+  background: var(--orange);
+  color: white;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.photo-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.photo-change { margin-left: auto; font-size: 10px; color: var(--orange); font-weight: 600; opacity: 0; transition: opacity .2s; flex-shrink: 0; }
+.photo-card:hover .photo-change { opacity: 1; }
+
+/* ─── BANDE PHOTOS (Q5 / Q6 / Q7) ──────────────── */
+.photo-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.strip-thumb { position: relative; overflow: hidden; }
+.strip-thumb img {
+  width: 100%; height: 100px;
+  object-fit: contain;
+  background: #0d0d1a;
+  display: block;
+}
+.strip-ph {
+  width: 100%; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  background: var(--surface);
+}
+.strip-lbl {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,.65);
+  padding: 4px 6px;
+  font-size: 10px; color: var(--white);
+  display: flex; align-items: flex-start; gap: 4px;
+  line-height: 1.3;
+}
+.strip-lbl-text { display: flex; flex-direction: column; }
+.strip-sub { font-size: 8.5px; opacity: .75; font-weight: 400; }
+/* Sous-titre dans les cartes photos et options */
+.photo-sub { font-size: 9px; font-weight: 400; color: var(--gray); margin-top: 1px; }
+.ph-sub { font-size: 11px; color: var(--gray); margin-top: 2px; }
+.opt-sub { font-size: 12px; color: var(--gray); font-weight: 400; display: block; margin-top: 2px; }
+.strip-badge {
+  background: var(--orange);
+  width: 14px; height: 14px; border-radius: 50%;
+  font-size: 8px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ─── OPTION BLOQUÉE (Q5/Q6) ─── */
+.opt-blocked {
+  opacity: 0.28;
+  cursor: not-allowed;
+  pointer-events: none;
+  position: relative;
+}
+.opt-blocked .opt-dot::after { content: '🔒'; font-size: 10px; }
+.opt-blocked-label {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--gray);
+  font-style: italic;
+}
+
+/* ─── VALIDATION ERROR ─── */
+.validation-msg {
+  font-size: 13px;
+  color: var(--orange);
+  font-weight: 600;
+  margin-top: 10px;
+  min-height: 20px;
+  transition: opacity .2s;
+}
+
+/* ─── BOTTOM BAR ──────────────────────────────── */
+#bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 12px 24px max(28px, env(safe-area-inset-bottom)); /* notch iPhone */
+  background: linear-gradient(transparent, var(--bg) 45%);
+  pointer-events: none;
+}
+#next-btn {
+  pointer-events: all;
+  width: 100%;
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  border: none;
+  border-radius: 16px;
+  padding: 17px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(255,107,53,.4);
+  transition: transform .12s, opacity .2s;
+}
+#next-btn:active { transform: scale(.97); }
+#next-btn:disabled { opacity: .35; cursor: default; }
+
+/* ─── THANKS ──────────────────────────────────── */
+#s-thanks {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.thanks-emoji {
+  font-size: 72px;
+  margin-bottom: 24px;
+  animation: popIn .7s cubic-bezier(.34,1.56,.64,1) .15s both;
+}
+.thanks-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+.thanks-title em { color: var(--orange); font-style: normal; }
+.thanks-sub {
+  font-size: 15px;
+  color: var(--gray);
+  line-height: 1.6;
+  max-width: 320px;
+  margin-bottom: 32px;
+}
+.thanks-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  font-size: 13px;
+  color: var(--gray);
+  line-height: 1.6;
+  max-width: 320px;
+  margin-bottom: 32px;
+}
+#dl-btn {
+  background: var(--card);
+  border: 2px solid var(--orange);
+  border-radius: 14px;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--orange);
+  cursor: pointer;
+  transition: background .15s;
+  margin-bottom: 12px;
+}
+#dl-btn:hover { background: rgba(255,107,53,.1); }
+
+/* ─── CONFETTI ────────────────────────────────── */
+.cf {
+  position: fixed;
+  top: -14px;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: cfFall linear forwards;
+  z-index: 999;
+}
+@keyframes cfFall {
+  to { transform: translateY(105vh) rotate(900deg); opacity: 0; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <button id="back-btn" aria-label="Retour">←</button>
+  <div id="progress-track"><div id="progress-fill"></div></div>
+  <div id="progress-label">0 / 16</div>
+</div>
+
+<!-- SCREENS -->
+<div id="viewport">
+
+  <!-- WELCOME -->
+  <div class="screen" id="s-welcome">
+    <div class="welcome-top">🏋️</div>
+    <h1 class="welcome-title">Ces espaces dehors,<br><em>t'en penses quoi&nbsp;?</em></h1>
+    <p class="welcome-desc">On bosse sur les espaces sportifs en plein air — et on a besoin de <strong>ton</strong> avis. Pas celui de tes profs, pas celui de tes parents. Le tien.</p>
+    <div class="welcome-pills">
+      <span class="pill">🔒 Anonyme</span>
+      <span class="pill">⏱ 3 minutes</span>
+      <span class="pill">✌️ Pas de bonne ou mauvaise réponse</span>
+    </div>
+    <button class="btn-start" id="start-btn">C'est parti →</button>
+  </div>
+
+  <!-- Q0 -->
+  <div class="screen hidden" id="s-q0">
+    <div class="q-section">Pour commencer</div>
+    <h2 class="q-title">Quand tu es dehors avec des amis, vous faites plutôt quoi&nbsp;?</h2>
+    <p class="q-note">Plusieurs réponses possibles.</p>
+    <div class="options" id="opts-q0">
+      <button class="opt" data-val="traine">     <span class="opt-dot"></span>On traîne / on marche sans but précis</button>
+      <button class="opt" data-val="jeux">       <span class="opt-dot"></span>On joue à des jeux (foot, basket, raquettes...)</button>
+      <button class="opt" data-val="parc">       <span class="opt-dot"></span>On va dans un parc / espace vert</button>
+      <button class="opt" data-val="ville">      <span class="opt-dot"></span>On fait du shopping / on traîne en ville</button>
+      <button class="opt" data-val="sport">      <span class="opt-dot"></span>On fait du sport ou une activité physique</button>
+      <button class="opt" data-val="films">      <span class="opt-dot"></span>On filme / on crée des trucs (vidéos, photos)</button>
+      <button class="opt" data-val="chez-quelqun"><span class="opt-dot"></span>On reste chez quelqu'un</button>
+      <button class="opt" data-val="autre-q0">   <span class="opt-dot"></span>Autre...</button>
+    </div>
+    <input id="other-q0" class="txt-input" placeholder="Précise ici..." style="margin-top:10px;display:none">
+  </div>
+
+  <!-- Q1 ÂGE -->
+  <div class="screen hidden" id="s-q1">
+    <div class="q-section">À propos de toi</div>
+    <h2 class="q-title">Tu as quel âge&nbsp;?</h2>
+    <div class="chips" id="opts-q1">
+      <button class="chip" data-val="11">11 ans</button>
+      <button class="chip" data-val="12">12 ans</button>
+      <button class="chip" data-val="13">13 ans</button>
+      <button class="chip" data-val="14">14 ans</button>
+      <button class="chip" data-val="15">15 ans</button>
+      <button class="chip" data-val="16">16 ans</button>
+      <button class="chip" data-val="17">17 ans</button>
+    </div>
+  </div>
+
+  <!-- Q2 GENRE -->
+  <div class="screen hidden" id="s-q2">
+    <div class="q-section">À propos de toi</div>
+    <h2 class="q-title">Tu es&nbsp;:</h2>
+    <div class="chips" id="opts-q2">
+      <button class="chip" data-val="fille">Une fille</button>
+      <button class="chip" data-val="garcon">Un garçon</button>
+      <button class="chip" data-val="autre">Autre / je préfère ne pas dire</button>
+    </div>
+  </div>
+
+  <!-- Q3 DÉPRT -->
+  <div class="screen hidden" id="s-q3">
+    <div class="q-section">À propos de toi</div>
+    <h2 class="q-title">Tu habites dans quel département&nbsp;?</h2>
+    <p class="q-note">2 chiffres uniquement — ex : 75, 69, 33, 06…</p>
+    <input id="inp-q3" class="txt-input" type="text" inputmode="numeric"
+           placeholder="Ex : 75" maxlength="2" pattern="[0-9]{2}" autocomplete="off">
+    <div class="validation-msg" id="val-q3" style="margin-top:10px"></div>
+  </div>
+
+  <!-- Q4 SPORT -->
+  <div class="screen hidden" id="s-q4">
+    <div class="q-section">À propos de toi</div>
+    <h2 class="q-title">Tu fais du sport en dehors des cours d'EPS&nbsp;?</h2>
+    <div class="options" id="opts-q4">
+      <button class="opt" data-val="oui-multi"><span class="opt-dot"></span>Oui, plusieurs fois par semaine</button>
+      <button class="opt" data-val="oui-une">  <span class="opt-dot"></span>Oui, une fois par semaine environ</button>
+      <button class="opt" data-val="parfois">  <span class="opt-dot"></span>Parfois</button>
+      <button class="opt" data-val="non">      <span class="opt-dot"></span>Non, pas vraiment</button>
+    </div>
+  </div>
+
+  <!-- PHOTOS -->
+  <div class="screen hidden" id="s-photos">
+    <div class="q-section">Ces espaces</div>
+    <h2 class="q-title">Regarde bien ces 3 types d'espaces</h2>
+    <p class="photos-intro">On va te poser quelques questions dessus juste après. Prends le temps de les regarder.<br><strong>Ces photos sont des exemples illustratifs</strong> — il en existe plein de variétés différentes. Réagis au <em>concept global</em>, pas forcément à cette photo en particulier.</p>
+    <div class="photo-cards">
+
+      <!-- PHOTO A — Street workout -->
+      <div class="photo-card" id="card-a" onclick="pickPhoto('a')">
+        <div class="photo-ph" id="ph-a">
+          <span class="ph-icon">🏋️</span>
+          <span class="ph-title">Street workout</span>
+          <span class="ph-sub">barres pour se muscler</span>
+          <span class="ph-hint">Cliquer pour ajouter la photo</span>
+        </div>
+        <img id="img-a" src="" alt="Street workout" style="display:none">
+        <div class="photo-foot">
+          <div class="photo-num">A</div>
+          <div class="photo-name">Street workout<br><span class="photo-sub">barres pour se muscler</span></div>
+          <span class="photo-change" id="chg-a">Changer ↑</span>
+        </div>
+      </div>
+
+      <!-- PHOTO B — Fitness outdoor -->
+      <div class="photo-card" id="card-b" onclick="pickPhoto('b')">
+        <div class="photo-ph" id="ph-b">
+          <span class="ph-icon">💪</span>
+          <span class="ph-title">Fitness outdoor</span>
+          <span class="ph-sub">machines de sport dehors</span>
+          <span class="ph-hint">Cliquer pour ajouter la photo</span>
+        </div>
+        <img id="img-b" src="" alt="Fitness outdoor" style="display:none">
+        <div class="photo-foot">
+          <div class="photo-num">B</div>
+          <div class="photo-name">Fitness outdoor<br><span class="photo-sub">machines de sport dehors</span></div>
+          <span class="photo-change" id="chg-b">Changer ↑</span>
+        </div>
+      </div>
+
+      <!-- PHOTO C — Play outdoor -->
+      <div class="photo-card" id="card-c" onclick="pickPhoto('c')">
+        <div class="photo-ph" id="ph-c">
+          <span class="ph-icon">🧗</span>
+          <span class="ph-title">Play outdoor</span>
+          <span class="ph-sub">structures pour grimper, se balancer, jouer</span>
+          <span class="ph-hint">Cliquer pour ajouter la photo</span>
+        </div>
+        <img id="img-c" src="" alt="Play outdoor" style="display:none">
+        <div class="photo-foot">
+          <div class="photo-num">C</div>
+          <div class="photo-name">Play outdoor<br><span class="photo-sub">grimper, se balancer, jouer</span></div>
+          <span class="photo-change" id="chg-c">Changer ↑</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bouton export — visible seulement quand au moins 1 photo chargée -->
+    <div id="export-wrap" style="display:none; margin-top:20px;">
+      <div style="font-size:12px; color:var(--gray); margin-bottom:10px; line-height:1.5;">
+        ✅ Photos chargées. Génère un fichier autonome à partager ou héberger en ligne.
+      </div>
+      <button id="export-btn" onclick="downloadEmbedded()" style="
+        width:100%; background:transparent; border:2px solid var(--orange);
+        border-radius:14px; padding:14px; font-size:14px; font-weight:700;
+        font-family:inherit; color:var(--orange); cursor:pointer;">
+        📦 Télécharger version partageable
+      </button>
+    </div>
+
+    <!-- Input file caché — déclenché par pickPhoto() -->
+    <input type="file" id="file-picker" accept="image/*" style="display:none">
+  </div>
+
+  <!-- Q5 + attire -->
+  <div class="screen hidden" id="s-q5">
+    <div class="q-section">Ces espaces</div>
+    <div class="photo-strip">
+      <div class="strip-thumb"><img data-slot="a" src="" style="display:none" alt=""><div data-slot-ph="a" class="strip-ph">🏋️</div><div class="strip-lbl"><span class="strip-badge">A</span><span class="strip-lbl-text">Street workout<span class="strip-sub">barres pour se muscler</span></span></div></div>
+      <div class="strip-thumb"><img data-slot="b" src="" style="display:none" alt=""><div data-slot-ph="b" class="strip-ph">💪</div><div class="strip-lbl"><span class="strip-badge">B</span><span class="strip-lbl-text">Fitness outdoor<span class="strip-sub">machines de sport dehors</span></span></div></div>
+      <div class="strip-thumb"><img data-slot="c" src="" style="display:none" alt=""><div data-slot-ph="c" class="strip-ph">🧗</div><div class="strip-lbl"><span class="strip-badge">C</span><span class="strip-lbl-text">Play outdoor<span class="strip-sub">grimper, se balancer, jouer</span></span></div></div>
+    </div>
+    <h2 class="q-title">Lequel te donne le plus envie d'y aller&nbsp;?</h2>
+    <p class="q-note">Une seule réponse.</p>
+    <div class="options" id="opts-q5">
+      <button class="opt" data-val="sw">  <span class="opt-dot"></span><span>🏋️ Street workout (A)<span class="opt-sub">barres pour se muscler</span></span></button>
+      <button class="opt" data-val="fo">  <span class="opt-dot"></span><span>💪 Fitness outdoor (B)<span class="opt-sub">machines de sport dehors</span></span></button>
+      <button class="opt" data-val="so">  <span class="opt-dot"></span><span>🧗 Play outdoor (C)<span class="opt-sub">structures pour grimper, se balancer, jouer</span></span></button>
+      <button class="opt" data-val="none"><span class="opt-dot"></span>😑 Aucun des trois</button>
+      <button class="opt" data-val="idk"> <span class="opt-dot"></span>🤷 Je sais pas trop</button>
+    </div>
+  </div>
+
+  <!-- Q6 − repousse -->
+  <div class="screen hidden" id="s-q6">
+    <div class="q-section">Ces espaces</div>
+    <div class="photo-strip">
+      <div class="strip-thumb"><img data-slot="a" src="" style="display:none" alt=""><div data-slot-ph="a" class="strip-ph">🏋️</div><div class="strip-lbl"><span class="strip-badge">A</span><span class="strip-lbl-text">Street workout<span class="strip-sub">barres pour se muscler</span></span></div></div>
+      <div class="strip-thumb"><img data-slot="b" src="" style="display:none" alt=""><div data-slot-ph="b" class="strip-ph">💪</div><div class="strip-lbl"><span class="strip-badge">B</span><span class="strip-lbl-text">Fitness outdoor<span class="strip-sub">machines de sport dehors</span></span></div></div>
+      <div class="strip-thumb"><img data-slot="c" src="" style="display:none" alt=""><div data-slot-ph="c" class="strip-ph">🧗</div><div class="strip-lbl"><span class="strip-badge">C</span><span class="strip-lbl-text">Play outdoor<span class="strip-sub">grimper, se balancer, jouer</span></span></div></div>
+    </div>
+    <h2 class="q-title">Et lequel te donne le moins envie&nbsp;?</h2>
+    <p class="q-note">Une seule réponse — différente de ta réponse précédente.</p>
+    <div class="validation-msg" id="val-q6"></div>
+    <div class="options" id="opts-q6">
+      <button class="opt" data-val="sw">  <span class="opt-dot"></span><span>🏋️ Street workout (A)<span class="opt-sub">barres pour se muscler</span></span></button>
+      <button class="opt" data-val="fo">  <span class="opt-dot"></span><span>💪 Fitness outdoor (B)<span class="opt-sub">machines de sport dehors</span></span></button>
+      <button class="opt" data-val="so">  <span class="opt-dot"></span><span>🧗 Play outdoor (C)<span class="opt-sub">structures pour grimper, se balancer, jouer</span></span></button>
+      <button class="opt" data-val="none"><span class="opt-dot"></span>🤷 Aucun en particulier</button>
+    </div>
+  </div>
+
+  <!-- Q7 MOTS -->
+  <div class="screen hidden" id="s-q7">
+    <div class="q-section">Ces espaces</div>
+    <div class="photo-strip">
+      <div class="strip-thumb"><img data-slot="a" src="" style="display:none" alt=""><div data-slot-ph="a" class="strip-ph">🏋️</div><div class="strip-lbl"><span class="strip-badge">A</span><span class="strip-lbl-text">Street workout<span class="strip-sub">barres pour se muscler</span></span></div></div>
+      <div class="strip-thumb"><img data-slot="b" src="" style="display:none" alt=""><div data-slot-ph="b" class="strip-ph">💪</div><div class="strip-lbl"><span class="strip-badge">B</span><span class="strip-lbl-text">Fitness outdoor<span class="strip-sub">machines de sport dehors</span></span></div></div>
+      <div class="strip-thumb"><img data-slot="c" src="" style="display:none" alt=""><div data-slot-ph="c" class="strip-ph">🧗</div><div class="strip-lbl"><span class="strip-badge">C</span><span class="strip-lbl-text">Play outdoor<span class="strip-sub">grimper, se balancer, jouer</span></span></div></div>
+    </div>
+    <h2 class="q-title">Quels mots te viennent en tête en voyant ces espaces&nbsp;?</h2>
+    <div class="q-count">Choisi <span id="cnt-q7">0</span> / 5 &nbsp;·&nbsp; <span style="color:var(--orange)">min. 3</span></div>
+    <div class="validation-msg" id="val-q7"></div>
+    <div class="chips" style="row-gap:10px" id="opts-q7">
+      <button class="chip" data-val="cool">Cool</button>
+      <button class="chip" data-val="fun">Fun</button>
+      <button class="chip" data-val="motivant">Motivant</button>
+      <button class="chip" data-val="genant">Gênant</button>
+      <button class="chip" data-val="intim">Intimidant</button>
+      <button class="chip" data-val="complique">Compliqué</button>
+      <button class="chip" data-val="petits">Pour les petits</button>
+      <button class="chip" data-val="sportifs">Pour les sportifs</button>
+      <button class="chip" data-val="pros">Pour les pros</button>
+      <button class="chip" data-val="garcons">Pour les garçons</button>
+      <button class="chip" data-val="touslemonde">Pour tout le monde</button>
+      <button class="chip" data-val="paspoirmoi">Pas pour moi</button>
+      <button class="chip" data-val="expose">Trop exposé</button>
+      <button class="chip" data-val="potes">Sympa entre potes</button>
+      <button class="chip" data-val="testable">Ça donne envie de tester</button>
+    </div>
+  </div>
+
+  <!-- Q8 PROXIMITÉ -->
+  <div class="screen hidden" id="s-q8">
+    <div class="q-section">Est-ce que tu y vas ?</div>
+    <h2 class="q-title">Est-ce qu'il y a un de ces espaces près de chez toi&nbsp;?</h2>
+    <div class="options" id="opts-q8">
+      <button class="opt" data-val="oui"><span class="opt-dot"></span>Oui</button>
+      <button class="opt" data-val="non"><span class="opt-dot"></span>Non</button>
+      <button class="opt" data-val="sais-pas"><span class="opt-dot"></span>Je sais pas</button>
+    </div>
+  </div>
+
+  <!-- Q9 FRÉQUENCE -->
+  <div class="screen hidden" id="s-q9">
+    <div class="q-section">Est-ce que tu y vas ?</div>
+    <h2 class="q-title">Tu vas parfois dans ce genre d'endroit&nbsp;?</h2>
+    <div class="options" id="opts-q9">
+      <button class="opt" data-val="souvent">     <span class="opt-dot"></span>Oui, souvent</button>
+      <button class="opt" data-val="parfois">     <span class="opt-dot"></span>De temps en temps</button>
+      <button class="opt" data-val="rarement">    <span class="opt-dot"></span>Rarement</button>
+      <button class="opt" data-val="jamais">      <span class="opt-dot"></span>Jamais</button>
+    </div>
+  </div>
+
+  <!-- Q10 POURQUOI -->
+  <div class="screen hidden" id="s-q10">
+    <div class="q-section">Est-ce que tu y vas ?</div>
+    <h2 class="q-title">Quand tu y vas — ou si tu imagines y aller — c'est pour quoi&nbsp;?</h2>
+    <p class="q-note">Plusieurs réponses possibles.</p>
+    <div class="options" id="opts-q10">
+      <button class="opt" data-val="sport">   <span class="opt-dot"></span>Faire du sport / m'entraîner</button>
+      <button class="opt" data-val="tester">  <span class="opt-dot"></span>Tester les équipements</button>
+      <button class="opt" data-val="poser">   <span class="opt-dot"></span>Me poser / traîner avec des amis</button>
+      <button class="opt" data-val="defis">   <span class="opt-dot"></span>Faire des défis / challenges</button>
+      <button class="opt" data-val="filmer">  <span class="opt-dot"></span>Filmer / prendre des photos</button>
+      <button class="opt" data-val="passer">  <span class="opt-dot"></span>Juste passer par là</button>
+      <button class="opt" data-val="nope">    <span class="opt-dot"></span>Franchement, j'irais pas</button>
+    </div>
+  </div>
+
+  <!-- Q11 AVEC QUI -->
+  <div class="screen hidden" id="s-q11">
+    <div class="q-section">Est-ce que tu y vas ?</div>
+    <h2 class="q-title">Avec qui tu irais le plus facilement&nbsp;?</h2>
+    <div class="options" id="opts-q11">
+      <button class="opt" data-val="seul">   <span class="opt-dot"></span>Seul(e)</button>
+      <button class="opt" data-val="ami1">   <span class="opt-dot"></span>Avec un(e) ami(e)</button>
+      <button class="opt" data-val="groupe"> <span class="opt-dot"></span>En groupe d'amis</button>
+      <button class="opt" data-val="famille"><span class="opt-dot"></span>Avec ma famille</button>
+      <button class="opt" data-val="nope">   <span class="opt-dot"></span>J'irais pas vraiment</button>
+    </div>
+  </div>
+
+  <!-- Q12 RÉSEAUX -->
+  <div class="screen hidden" id="s-q12">
+    <div class="q-section">Et les réseaux ?</div>
+    <h2 class="q-title">T'as déjà vu du street workout ou du fitness outdoor sur TikTok, YouTube, Insta...&nbsp;?</h2>
+    <div class="options" id="opts-q12">
+      <button class="opt" data-val="oui-love">  <span class="opt-dot"></span>Oui, souvent — j'adore ça 🔥</button>
+      <button class="opt" data-val="oui-deja">  <span class="opt-dot"></span>Oui, j'en ai déjà vu</button>
+      <button class="opt" data-val="pas-vraim"> <span class="opt-dot"></span>Pas vraiment</button>
+      <button class="opt" data-val="jamais">    <span class="opt-dot"></span>Non, jamais</button>
+    </div>
+  </div>
+
+  <!-- Q13 LEVIERS -->
+  <div class="screen hidden" id="s-q13">
+    <div class="q-section">Ce qui changerait tout</div>
+    <h2 class="q-title">Qu'est-ce qui pourrait te donner plus envie d'y aller&nbsp;?</h2>
+    <div class="q-count">Choisi <span id="cnt-q13">0</span> &nbsp;·&nbsp; <span style="color:var(--orange)">min. 3</span></div>
+    <div class="validation-msg" id="val-q13"></div>
+    <div class="options" id="opts-q13">
+      <button class="opt" data-val="amis">    <span class="opt-dot"></span>Y aller avec mes amis</button>
+      <button class="opt" data-val="poser">   <span class="opt-dot"></span>Pouvoir se poser sans forcément faire du sport</button>
+      <button class="opt" data-val="equip">   <span class="opt-dot"></span>Des équipements plus funs / plus variés</button>
+      <button class="opt" data-val="style">   <span class="opt-dot"></span>Un lieu plus stylé visuellement</button>
+      <button class="opt" data-val="couleurs"><span class="opt-dot"></span>Des couleurs plus attirantes, plus fun</button>
+      <button class="opt" data-val="defis">   <span class="opt-dot"></span>Des défis ou niveaux progressifs</button>
+      <button class="opt" data-val="discret"> <span class="opt-dot"></span>Un espace moins exposé au regard des autres</button>
+      <button class="opt" data-val="ombre">   <span class="opt-dot"></span>Plus d'ombre ou un endroit couvert</button>
+      <button class="opt" data-val="explics"> <span class="opt-dot"></span>Des explications simples sur comment utiliser les équipements</button>
+      <button class="opt" data-val="pas-utile"><span class="opt-dot"></span>J'ai pas d'utilité à y aller, je fais déjà du sport</button>
+    </div>
+  </div>
+
+  <!-- Q14 FREINS -->
+  <div class="screen hidden" id="s-q14">
+    <div class="q-section">Ce qui changerait tout</div>
+    <h2 class="q-title">Ce qui te freine le plus, c'est plutôt…</h2>
+    <div class="q-count">Choisi <span id="cnt-q14">0</span> / 3</div>
+    <div class="options" id="opts-q14">
+      <button class="opt" data-val="sais-pas"> <span class="opt-dot"></span>Je saurais pas trop quoi y faire</button>
+      <button class="opt" data-val="regard">   <span class="opt-dot"></span>J'aurais peur du regard des autres</button>
+      <button class="opt" data-val="pas-sport"> <span class="opt-dot"></span>Je me sens pas assez sportif(ve)</button>
+      <button class="opt" data-val="groupe">   <span class="opt-dot"></span>Y'a déjà des groupes qui prennent la place</button>
+      <button class="opt" data-val="expose">   <span class="opt-dot"></span>C'est trop exposé</button>
+      <button class="opt" data-val="confort">  <span class="opt-dot"></span>C'est pas confortable pour traîner</button>
+      <button class="opt" data-val="assez-sport"> <span class="opt-dot"></span>J'en ai pas besoin, je fais assez de sport à côté</button>
+      <button class="opt" data-val="interesse-pas"><span class="opt-dot"></span>Ça m'intéresse pas</button>
+    </div>
+  </div>
+
+  <!-- Q15 LIBRE -->
+  <div class="screen hidden" id="s-q15">
+    <div class="q-section">Le mot de la fin</div>
+    <h2 class="q-title">Si tu pouvais changer un truc sur ces espaces pour que <em style="color:var(--orange);font-style:normal">toi</em> tu aies vraiment envie d'y aller, ce serait quoi&nbsp;?</h2>
+    <p class="q-note">Écris ce que tu veux — ou rien du tout, c'est ok aussi.</p>
+    <textarea id="inp-q15" class="txt-input" placeholder="Genre si c'était un peu moins..."></textarea>
+  </div>
+
+  <!-- MERCI -->
+  <div class="screen hidden" id="s-thanks">
+    <div class="thanks-emoji">🎉</div>
+    <h2 class="thanks-title">Trop <em>bien</em>, merci&nbsp;!</h2>
+    <p class="thanks-sub">Tu viens d'aider à concevoir des espaces qui ressemblent vraiment aux ados. C'était rapide et tu l'as fait.</p>
+    <div class="thanks-box">
+      Tes réponses ont bien été enregistrées.<br>On s'en servira pour créer des endroits qui donnent envie.
+    </div>
+    <button id="dl-btn">⬇️ Télécharger mes réponses</button>
+  </div>
+
+</div><!-- /viewport -->
+
+<!-- BOTTOM -->
+<div id="bottom-bar">
+  <button id="next-btn" disabled>Suivant →</button>
+</div>
+
+<style>
+  /* START btn matches next-btn */
+  #start-btn {
+    background: linear-gradient(135deg, var(--orange), var(--orange2));
+    border: none;
+    border-radius: 16px;
+    padding: 17px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(255,107,53,.4);
+    transition: transform .12s;
+    width: 100%;
+  }
+  #start-btn:active { transform: scale(.97); }
+</style>
+
+<script>
+/* ─── GOOGLE SHEETS — coller l'URL Apps Script après déploiement ── */
+var SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyXbsRb5R7Kk3MV1QFWYqqxCSw0Iam9F843dmOsuC0RY4si0mvqNOVWVJwyIv5FWyIZ/exec';
+
+function sendToSheets(data) {
+  if (!SHEETS_URL || SHEETS_URL === 'COLLER_VOTRE_URL_ICI') return;
+  try {
+    fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',          // évite les erreurs CORS sans serveur
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(data)
+    });
+  } catch(e) { /* silencieux — ne bloque pas l'UX */ }
+}
+
+/* ─── DATA ─────────────────────────────────────────────────────── */
+const SCREENS = [
+  'welcome','q0','q1','q2','q3','q4','photos','q5','q6','q7',
+  'q8','q9','q10','q11','q12','q13','q14','q15','thanks'
+];
+const TOTAL_Q = 16; // q0 → q15
+
+// Multiple-choice max limits (null = pas de limite)
+const MAX = { q0: null, q7: 5, q10: null, q13: null, q14: 3 };
+
+// Single-choice question IDs
+const SINGLE = ['q1','q2','q4','q5','q6','q8','q9','q11','q12'];
+
+// Stores all answers
+const answers = {};
+
+/* ─── STATE ─────────────────────────────────────────────────────── */
+let cur = 0; // index in SCREENS
+
+/* ─── DOM ────────────────────────────────────────────────────────── */
+const $  = id => document.getElementById(id);
+const progressFill  = $('progress-fill');
+const progressLabel = $('progress-label');
+const backBtn       = $('back-btn');
+const nextBtn       = $('next-btn');
+
+/* ─── PROGRESS ───────────────────────────────────────────────────── */
+function updateProgress() {
+  const id = SCREENS[cur];
+  if (id === 'welcome' || id === 'thanks') {
+    progressFill.style.width = id === 'thanks' ? '100%' : '0%';
+    progressLabel.textContent = '';
+    nextBtn.style.display = id === 'thanks' ? 'none' : 'none';
+    return;
+  }
+  const qNum = SCREENS.indexOf(id) - 1; // after welcome
+  const pct  = Math.round((qNum / TOTAL_Q) * 100);
+  progressFill.style.width = pct + '%';
+  progressLabel.textContent = qNum + ' / ' + TOTAL_Q;
+  nextBtn.style.display = '';
+}
+
+/* ─── NAVIGATION ─────────────────────────────────────────────────── */
+function goTo(idx, direction) {
+  if (direction === undefined) direction = 'fwd';
+  var prev = $('s-' + SCREENS[cur]);
+  var next = $('s-' + SCREENS[idx]);
+
+  // Cacher l'écran précédent instantanément
+  prev.style.display = 'none';
+  prev.classList.remove('anim-fwd', 'anim-back');
+
+  // Afficher le prochain écran et lancer l'animation CSS (@keyframes — fiable sur iOS)
+  next.classList.remove('anim-fwd', 'anim-back');
+  next.scrollTop = 0;
+  next.style.display = 'flex';
+  void next.offsetWidth; // force reflow pour que l'animation reparte si même classe
+  next.classList.add(direction === 'fwd' ? 'anim-fwd' : 'anim-back');
+
+  cur = idx;
+  updateProgress();
+  backBtn.classList.toggle('visible', cur > 0 && SCREENS[cur] !== 'thanks');
+  if (SCREENS[cur] === 'q6') enforceQ5Q6();
+  checkNextEnabled();
+}
+
+function advance() {
+  if (cur < SCREENS.length - 1) {
+    saveCurrentAnswer();
+    goTo(cur + 1, 'fwd');
+  }
+}
+
+function goBack() {
+  if (cur > 0) {
+    goTo(cur - 1, 'back');
+  }
+}
+
+/* ─── SAVE ANSWERS ───────────────────────────────────────────────── */
+function saveCurrentAnswer() {
+  const id = SCREENS[cur];
+  if (id === 'welcome' || id === 'photos' || id === 'thanks') return;
+
+  if (id === 'q3') {
+    answers[id] = $('inp-q3').value.trim();
+  } else if (id === 'q15') {
+    answers[id] = $('inp-q15').value.trim();
+  } else {
+    const sel = [...document.querySelectorAll(`#opts-${id} .opt.selected, #opts-${id} .chip.selected`)]
+      .map(b => b.dataset.val);
+    answers[id] = SINGLE.includes(id) ? sel[0] : sel;
+    // capture "autre" text
+    const otherInp = $('other-' + id);
+    if (otherInp && otherInp.style.display !== 'none') {
+      answers[id + '_autre'] = otherInp.value.trim();
+    }
+  }
+}
+
+/* ─── CHECK NEXT ENABLED ─────────────────────────────────────────── */
+function checkNextEnabled() {
+  const id = SCREENS[cur];
+  if (id === 'welcome' || id === 'photos') {
+    nextBtn.disabled = false;
+    nextBtn.textContent = id === 'photos' ? 'J\'ai regardé  →' : 'C\'est parti →';
+    return;
+  }
+  if (id === 'thanks') { nextBtn.style.display = 'none'; return; }
+
+  if (id === 'q3') {
+    const val = $('inp-q3').value;
+    const msg = $('val-q3');
+    if (val.length === 0) {
+      msg.textContent = '';
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Suivant →';
+    } else if (val.length < 2) {
+      msg.textContent = 'Il manque un chiffre — le département fait 2 chiffres';
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Suivant →';
+    } else {
+      msg.textContent = '';
+      nextBtn.disabled = false;
+      nextBtn.textContent = 'Suivant →';
+    }
+    return;
+  }
+  if (id === 'q15') {
+    nextBtn.disabled = false;
+    nextBtn.textContent = $('inp-q15').value.trim() ? 'Envoyer 🎉' : 'Passer →';
+    return;
+  }
+
+  // Q7 — minimum 3 mots requis
+  if (id === 'q7') {
+    const cnt = document.querySelectorAll('#opts-q7 .chip.selected').length;
+    const msg = $('val-q7');
+    if (cnt === 0) {
+      msg.textContent = '';
+      nextBtn.disabled = true;
+    } else if (cnt < 3) {
+      msg.textContent = `Choisis encore ${3 - cnt} mot${3 - cnt > 1 ? 's' : ''} au minimum`;
+      nextBtn.disabled = true;
+    } else {
+      msg.textContent = '';
+      nextBtn.disabled = false;
+    }
+    nextBtn.textContent = 'Suivant →';
+    return;
+  }
+
+  // Q13 — minimum 3 réponses, pas de maximum
+  if (id === 'q13') {
+    const cnt = document.querySelectorAll('#opts-q13 .opt.selected').length;
+    const msg = $('val-q13');
+    if (cnt === 0) {
+      msg.textContent = '';
+      nextBtn.disabled = true;
+    } else if (cnt < 3) {
+      msg.textContent = `Choisis encore ${3 - cnt} réponse${3 - cnt > 1 ? 's' : ''} au minimum`;
+      nextBtn.disabled = true;
+    } else {
+      msg.textContent = '';
+      nextBtn.disabled = false;
+    }
+    nextBtn.textContent = 'Suivant →';
+    return;
+  }
+
+  const anySelected = document.querySelectorAll(`#opts-${id} .opt.selected, #opts-${id} .chip.selected`).length > 0;
+  nextBtn.disabled = !anySelected;
+  nextBtn.textContent = 'Suivant →';
+}
+
+/* ─── Q5 / Q6 COHÉRENCE ─────────────────────────────────────────── */
+// Espaces réels (on exclut "aucun" et "idk" de la contrainte)
+const SPACE_VALS = ['sw', 'fo', 'so'];
+
+function enforceQ5Q6() {
+  const q5Val = answers['q5'];
+  const msg   = $('val-q6');
+
+  // Réinitialise tous les boutons Q6
+  document.querySelectorAll('#opts-q6 .opt').forEach(btn => {
+    btn.classList.remove('opt-blocked');
+    btn.disabled = false;
+    const existing = btn.querySelector('.opt-blocked-label');
+    if (existing) existing.remove();
+  });
+
+  if (!q5Val || !SPACE_VALS.includes(q5Val)) return; // pas de contrainte si Q5 = "aucun" ou "idk"
+
+  // Si Q6 a actuellement la même valeur que Q5, on la désélectionne
+  document.querySelectorAll('#opts-q6 .opt.selected').forEach(btn => {
+    if (btn.dataset.val === q5Val) {
+      btn.classList.remove('selected');
+      if (msg) msg.textContent = '';
+    }
+  });
+
+  // Bloque l'option identique à Q5
+  document.querySelectorAll('#opts-q6 .opt').forEach(btn => {
+    if (btn.dataset.val === q5Val) {
+      btn.classList.add('opt-blocked');
+      btn.disabled = true;
+      const lbl = document.createElement('span');
+      lbl.className = 'opt-blocked-label';
+      lbl.textContent = 'déjà choisi comme préféré';
+      btn.appendChild(lbl);
+    }
+  });
+}
+
+/* ─── OPTION CLICK ───────────────────────────────────────────────── */
+function setupOption(btn, id) {
+  btn.addEventListener('click', () => {
+    const isSingle = SINGLE.includes(id) || ['q1','q2'].includes(id);
+    const maxSel   = MAX[id];
+    const container = btn.closest('[id^="opts-"]');
+
+    if (isSingle) {
+      container.querySelectorAll('.opt, .chip').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      setTimeout(() => { saveCurrentAnswer(); goTo(cur + 1, 'fwd'); }, 320);
+    } else {
+      if (btn.classList.contains('selected')) {
+        btn.classList.remove('selected');
+      } else {
+        const currentCount = container.querySelectorAll('.opt.selected, .chip.selected').length;
+        if (maxSel && currentCount >= maxSel) return;
+        btn.classList.add('selected');
+      }
+      if (btn.dataset.val && btn.dataset.val.startsWith('autre')) {
+        const otherInp = $('other-' + id);
+        if (otherInp) otherInp.style.display = btn.classList.contains('selected') ? '' : 'none';
+      }
+      const cnt = $('cnt-' + id);
+      if (cnt) cnt.textContent = container.querySelectorAll('.selected').length;
+    }
+    checkNextEnabled();
+  });
+}
+
+/* ─── INIT ───────────────────────────────────────────────────────── */
+document.querySelectorAll('.opt, .chip').forEach(btn => {
+  const screen = btn.closest('.screen');
+  const id = screen.id.replace('s-', '');
+  setupOption(btn, id);
+});
+
+$('inp-q3').addEventListener('input', () => {
+  // Supprime tout ce qui n'est pas un chiffre en temps réel
+  const clean = $('inp-q3').value.replace(/\D/g, '').slice(0, 2);
+  if ($('inp-q3').value !== clean) $('inp-q3').value = clean;
+  checkNextEnabled();
+});
+$('inp-q15').addEventListener('input', checkNextEnabled);
+
+$('start-btn').addEventListener('click', advance);
+nextBtn.addEventListener('click', () => {
+  if (SCREENS[cur] === 'q15') {
+    saveCurrentAnswer();
+    sendToSheets(answers); // ← envoie les réponses vers Google Sheets
+    goTo(SCREENS.indexOf('thanks'), 'fwd');
+    launchConfetti();
+  } else {
+    advance();
+  }
+});
+backBtn.addEventListener('click', goBack);
+
+/* ─── CONFETTI ────────────────────────────────────────────────────── */
+function launchConfetti() {
+  const colors = ['#FF6B35','#ffaa5e','#ff3b7a','#7b61ff','#00d4aa','#FFE066'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'cf';
+    el.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      width: ${6 + Math.random() * 8}px;
+      height: ${6 + Math.random() * 8}px;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      animation-duration: ${1.5 + Math.random() * 2}s;
+      animation-delay: ${Math.random() * .8}s;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+    `;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+/* ─── DOWNLOAD ────────────────────────────────────────────────────── */
+$('dl-btn').addEventListener('click', () => {
+  const rows = ['Question\tRéponse'];
+  const labels = {
+    q0: 'Activités dehors', q1: 'Âge', q2: 'Genre', q3: 'Département',
+    q4: 'Sport EPS', q5: 'Espace préféré', q6: 'Espace moins aimé',
+    q7: 'Mots', q8: 'Proximité', q9: 'Fréquence', q10: 'Raisons visite',
+    q11: 'Avec qui', q12: 'Réseaux', q13: 'Leviers', q14: 'Freins', q15: 'Message libre'
+  };
+  for (const [k, v] of Object.entries(answers)) {
+    if (k.endsWith('_autre')) continue;
+    const label = labels[k] || k;
+    const val = Array.isArray(v) ? v.join(', ') : (v || '—');
+    rows.push(`${label}\t${val}`);
+    if (answers[k + '_autre']) rows.push(`${label} (autre)\t${answers[k + '_autre']}`);
+  }
+  const blob = new Blob([rows.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reponses_questionnaire.txt';
+  a.click();
+});
+
+/* ─── EXPORT AVEC PHOTOS EMBARQUÉES ─────────────────────────────── */
+function downloadEmbedded() {
+  // 1. Mémoriser l'état des écrans
+  const screenStates = [];
+  document.querySelectorAll('.screen').forEach(s => {
+    screenStates.push({ el: s, cls: s.className, styleT: s.style.transform, styleO: s.style.opacity });
+    s.className = 'screen hidden';
+    s.style.transform = '';
+    s.style.opacity   = '';
+  });
+  // Remettre welcome visible (état initial)
+  const welcome = document.getElementById('s-welcome');
+  welcome.className = 'screen';
+
+  // 2. Cacher la topbar et le bottom-bar du snapshot
+  const topbar    = document.getElementById('topbar');
+  const bottomBar = document.getElementById('bottom-bar');
+  const tbOld = topbar.style.display;
+  const bbOld = bottomBar.style.display;
+
+  // 3. Capturer le HTML (photos déjà dans les src du DOM)
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+  // 4. Restaurer l'état
+  screenStates.forEach(({ el, cls, styleT, styleO }) => {
+    el.className      = cls;
+    el.style.transform = styleT;
+    el.style.opacity   = styleO;
+  });
+  topbar.style.display    = tbOld;
+  bottomBar.style.display = bbOld;
+
+  // 5. Télécharger
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'questionnaire_avec_photos.html';
+  a.click();
+}
+
+/* ─── PHOTO PICKER ───────────────────────────────────────────────── */
+let currentPickSlot = null;
+const filePicker = document.getElementById('file-picker');
+
+function applyPhoto(slot, dataUrl) {
+  // Carte principale (écran photos)
+  const img = document.getElementById('img-' + slot);
+  const ph  = document.getElementById('ph-'  + slot);
+  const chg = document.getElementById('chg-' + slot);
+  if (img) { img.src = dataUrl; img.style.display = 'block'; }
+  if (ph)  ph.style.display  = 'none';
+  if (chg) chg.style.opacity = '1';
+
+  // Mini vignettes dans Q5 / Q6 / Q7
+  document.querySelectorAll(`img[data-slot="${slot}"]`).forEach(el => {
+    el.src = dataUrl;
+    el.style.display = 'block';
+  });
+  document.querySelectorAll(`[data-slot-ph="${slot}"]`).forEach(el => {
+    el.style.display = 'none';
+  });
+
+  // Afficher le bouton export dès qu'au moins une photo est chargée
+  const loaded = ['a','b','c'].filter(s => {
+    const el = document.getElementById('img-' + s);
+    return el && el.src && el.src.startsWith('data:');
+  });
+  document.getElementById('export-wrap').style.display = loaded.length > 0 ? '' : 'none';
+}
+
+function pickPhoto(slot) {
+  currentPickSlot = slot;
+  filePicker.value = '';
+  filePicker.click();
+}
+
+filePicker.addEventListener('change', () => {
+  const file = filePicker.files[0];
+  if (!file || !currentPickSlot) return;
+  const slot = currentPickSlot;
+
+  // Compress to max 900px wide before saving
+  const reader = new FileReader();
+  reader.onload = e => {
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      const MAX = 900;
+      const scale = Math.min(1, MAX / tempImg.width);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(tempImg.width  * scale);
+      canvas.height = Math.round(tempImg.height * scale);
+      canvas.getContext('2d').drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.82);
+      // Persist in localStorage so photos survive page refresh
+      try { localStorage.setItem('photo_' + slot, compressed); } catch(e) {}
+      applyPhoto(slot, compressed);
+    };
+    tempImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// Restore saved photos on load
+['a','b','c'].forEach(slot => {
+  try {
+    const saved = localStorage.getItem('photo_' + slot);
+    if (saved) applyPhoto(slot, saved);
+  } catch(e) {}
+});
+
+/* ─── INITIAL STATE ───────────────────────────────────────────────── */
+updateProgress();
+nextBtn.style.display = 'none'; // caché sur l'écran welcome (start-btn à la place)
+$('s-welcome').style.display = 'flex'; // afficher l'écran d'accueil
+
+// révéler next-btn après welcome
+$('start-btn').addEventListener('click', () => {
+  nextBtn.style.display = '';
+}, { once: true });
+</script>
+
+</body>
+</html>
